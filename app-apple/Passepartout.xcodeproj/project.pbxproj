@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F17300000000000000000001 /* RequireVPNProfileUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F17300000000000000000002; platformFilter = ios; };
 		0E08447C2CF86F2A00ECED7C /* XCTestCase+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E08447B2CF86F2A00ECED7C /* XCTestCase+Extensions.swift */; };
 		0E2306142DC2BF6B002D70D7 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E2306102DC2BF6B002D70D7 /* main.swift */; };
 		0E2306162DC2C00B002D70D7 /* PacketTunnelProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E7E3D672B9345FD002BBDB4 /* PacketTunnelProvider.swift */; };
@@ -130,6 +131,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F17300000000000000000002 /* RequireVPNProfileUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequireVPNProfileUITests.swift; sourceTree = "<group>"; };
 		0E06D18F2B87629100176E1D /* Passepartout.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Passepartout.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0E08447B2CF86F2A00ECED7C /* XCTestCase+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XCTestCase+Extensions.swift"; sourceTree = "<group>"; };
 		0E2267852D0A059B0000B557 /* MainScreenshots.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MainScreenshots.xctestplan; sourceTree = "<group>"; };
@@ -389,6 +391,7 @@
 		0E7F460D2CF7F01600B1C53A /* UITests */ = {
 			isa = PBXGroup;
 			children = (
+				F17300000000000000000002 /* RequireVPNProfileUITests.swift */,
 				0E916B7A2CF811DE0072921A /* Extensions */,
 				0EC418C92CF81C6A00AC6F2F /* Main */,
 				0E418AB72D0752D100D33D47 /* TV */,
@@ -844,6 +847,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F17300000000000000000001 /* RequireVPNProfileUITests.swift in Sources */,
 				0E08447C2CF86F2A00ECED7C /* XCTestCase+Extensions.swift in Sources */,
 				0EA6340E2D08995800180D7C /* TVScreenshotTests.swift in Sources */,
 				0EA634122D08997300180D7C /* TVFlowTests.swift in Sources */,
@@ -1250,7 +1254,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.algoritmico.ios.PassepartoutUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CFG_APP_ID).UITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -1265,7 +1269,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.algoritmico.ios.PassepartoutUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CFG_APP_ID).UITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -1499,7 +1503,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.algoritmico.ios.PassepartoutUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CFG_APP_ID).UITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SWIFT_EMIT_LOC_STRINGS = NO;

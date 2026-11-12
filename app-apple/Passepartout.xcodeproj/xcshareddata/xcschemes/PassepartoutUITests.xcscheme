@@ -43,6 +43,8 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <TestPlans>
+         <TestPlanReference reference = "container:Passepartout/UITests/RequireVPNDevice.xctestplan">
+         </TestPlanReference>
          <TestPlanReference
             reference = "container:Passepartout/UITests/TVScreenshots.xctestplan"
             default = "YES">

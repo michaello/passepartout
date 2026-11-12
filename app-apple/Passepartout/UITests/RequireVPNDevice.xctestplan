@@ -1,0 +1,36 @@
+{
+  "configurations": [
+    {
+      "id": "AFD68198-B3E8-4EA7-9FC1-96C252780C47",
+      "name": "Require VPN device diagnostics",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "environmentVariableEntries": [
+      {
+        "key": "REQUIRE_VPN_DEVICE_UI",
+        "value": "1"
+      }
+    ],
+    "testTimeoutsEnabled": true
+  },
+  "testTargets": [
+    {
+      "parallelizable": false,
+      "selectedTests": [
+        "RequireVPNProfileUITests/testInspectSettings()",
+        "RequireVPNProfileUITests/testDownloadPreflightProfile()",
+        "RequireVPNProfileUITests/testInspectSystem()",
+        "RequireVPNProfileUITests/testReviewPreflightProfile()",
+        "RequireVPNProfileUITests/testInstallPreflightProfile()"
+      ],
+      "target": {
+        "containerPath": "container:Passepartout.xcodeproj",
+        "identifier": "0E78FE4B2CF799F400B0C5BF",
+        "name": "PassepartoutUITests"
+      }
+    }
+  ],
+  "version": 1
+}
