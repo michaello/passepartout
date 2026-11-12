@@ -74,17 +74,14 @@ final class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
         }
 
         // Create the tunnel context
-        do {
-            context = try await TunnelContext.forProduction(
-                neProvider: self,
-                appConfiguration: appConfiguration,
-                preferences: preferences
-            )
-        } catch TunnelContext.RuntimeError.unsupportedProviders {
-            //
-        }
-        context?.log(.core, .notice, "Start PTP")
-        try await context?.start(isInteractive: isInteractive)
+        let context = try await TunnelContext.forProduction(
+            neProvider: self,
+            appConfiguration: appConfiguration,
+            preferences: preferences
+        )
+        self.context = context
+        context.log(.core, .notice, "Start PTP")
+        try await context.start(isInteractive: isInteractive)
     }
 
     override func stopTunnel(with reason: NEProviderStopReason) async {
@@ -94,9 +91,8 @@ final class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     }
 
     override func cancelTunnelWithError(_ error: Error?) {
-        guard let context else { return }
         pspLog(.core, .info, "Cancel PTP, error: \(String(describing: error))")
-        context.cancel(error)
+        context?.cancel(error)
         super.cancelTunnelWithError(error)
     }
 

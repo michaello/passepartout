@@ -36,6 +36,8 @@ public final class TunnelObservable {
 
     private let willInstall: WillInstallBlock?
 
+    public let networkProtection: NetworkProtectionCoordinator?
+
     public private(set) var activeProfiles: [Profile.ID: ABI.AppTunnelInfo]
 
     private var subscriptions: [Task<Void, Never>]
@@ -47,12 +49,14 @@ public final class TunnelObservable {
         tunnel: PartoutTunnel,
         preferences: AppPreferencesStore? = nil,
         logging: Logging? = nil,
-        willInstall: WillInstallBlock? = nil
+        willInstall: WillInstallBlock? = nil,
+        networkProtection: NetworkProtectionCoordinator? = nil
     ) {
         self.tunnel = tunnel
         self.preferences = preferences
         self.logging = logging
         self.willInstall = willInstall
+        self.networkProtection = networkProtection
         activeProfiles = [:]
         subscriptions = []
         pendingTasks = [:]
@@ -196,6 +200,17 @@ extension TunnelObservable {
                 // Publish compound info
                 if newActiveProfiles != activeProfiles {
                     activeProfiles = newActiveProfiles
+                }
+                // A connected VPN is not evidence that the independent guard is armed.
+                let status = newActiveProfiles.first?.value.status
+                switch status {
+                case .connected:
+                    networkProtection?.updateTunnel(.connected)
+                case .connecting:
+                    let reconnecting = networkProtection?.tunnel == .connected || networkProtection?.tunnel == .reconnecting
+                    networkProtection?.updateTunnel(reconnecting ? .reconnecting : .connecting)
+                default:
+                    networkProtection?.updateTunnel(.disconnected)
                 }
             }
             pspLog(.core, .debug, "Tunnel snapshots subscription terminated")

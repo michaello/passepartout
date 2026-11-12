@@ -97,7 +97,8 @@ extension ABI.AppConfiguration {
     public func makeKeychainAndNECoder(
         _ ctx: PartoutLoggerContext,
         bundleIdentifier: String,
-        coder: ProfileCoder
+        coder: ProfileCoder,
+        protection: @escaping @Sendable () throws -> NETunnelProtection = { .disabled }
     ) -> (keychain: Keychain, neCoder: NEProtocolCoder) {
         let keychain: Keychain
         let neCoder: NEProtocolCoder
@@ -109,7 +110,8 @@ extension ABI.AppConfiguration {
                 ctx,
                 tunnelBundleIdentifier: tunnelIdentifier,
                 coder: coder,
-                keychain: keychain
+                keychain: keychain,
+                protection: protection
             )
         } else {
             keychain = AppleKeychain(ctx, service: bundleIdentifier)
@@ -117,7 +119,8 @@ extension ABI.AppConfiguration {
                 ctx,
                 tunnelBundleIdentifier: tunnelIdentifier,
                 coder: coder,
-                uid: Int(getuid())
+                uid: Int(getuid()),
+                protection: protection
             )
         }
         return (keychain, neCoder)
@@ -139,7 +142,8 @@ extension ABI.AppConfiguration {
     public func makeNETunnelStrategy(
         _ ctx: PartoutLoggerContext,
         coder: NEProtocolCoder,
-        source: AsyncStream<ProfilesEvent>
+        source: AsyncStream<ProfilesEvent>,
+        protection: @escaping @Sendable () throws -> NETunnelProtection = { .disabled }
     ) -> NETunnelStrategy {
         let bundleIdentifier = bundle.bundleString(for: .tunnelId)
         return NETunnelStrategy(
@@ -147,6 +151,7 @@ extension ABI.AppConfiguration {
             bundleIdentifier: bundleIdentifier,
             source: source,
             coder: coder,
+            protection: protection,
             fingerprint: {
                 ($0.attributes.fingerprint ?? $0.id)?.uuidString
             }

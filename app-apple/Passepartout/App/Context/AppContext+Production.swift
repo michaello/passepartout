@@ -127,6 +127,8 @@ extension AppContext {
 
         // MARK: Profiles and Tunnel (NE)
 
+        let protectionStore = LocalNetworkProtectionPolicyStore(applicationIdentifier: bundleIdentifier)
+        let networkProtection = NetworkProtectionCoordinator(store: protectionStore)
         let sysexManager = appConfiguration.makeSystemExtensionManager()
 #if targetEnvironment(simulator)
         let tunnelStrategy = FakeTunnelStrategy()
@@ -141,7 +143,8 @@ extension AppContext {
         let codingPair = appConfiguration.makeKeychainAndNECoder(
             ctx,
             bundleIdentifier: bundleIdentifier,
-            coder: appImportExport
+            coder: appImportExport,
+            protection: { try protectionStore.load() }
         )
         let profilesBootstrap: KeychainProfileRepository.Bootstrap?
 
@@ -178,7 +181,8 @@ extension AppContext {
         let tunnelStrategy = appConfiguration.makeNETunnelStrategy(
             ctx,
             coder: codingPair.neCoder,
-            source: mainProfileRepository.eventsPublisher
+            source: mainProfileRepository.eventsPublisher,
+            protection: { try protectionStore.load() }
         )
         let backupProfileRepository = appConfiguration.newBackupProfileRepository(
             encoder: appImportExport,
@@ -218,7 +222,8 @@ extension AppContext {
             tunnel: tunnel,
             preferences: preferences,
             logging: logging,
-            willInstall: tunnelProcessor.willInstall
+            willInstall: tunnelProcessor.willInstall,
+            networkProtection: networkProtection
         )
 
         // MARK: Preferences (Core Data)
