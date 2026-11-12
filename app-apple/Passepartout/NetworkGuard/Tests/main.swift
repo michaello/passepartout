@@ -6,6 +6,7 @@ import Network
 // Standalone deterministic packet tests. These do not activate a host filter or
 // establish any boot, crash, update, or physical-network leakage guarantee.
 var checks = 0
+@MainActor
 func check(_ condition: @autoclosure () -> Bool, _ message: String) {
     precondition(condition(), message)
     checks += 1
@@ -128,11 +129,66 @@ check(allows(.blockAll, ipv4(destination: "255.255.255.255", source: "0.0.0.0", 
 check(!allows(.blockAll, ipv4(destination: "198.51.100.4", sourcePort: 68, destinationPort: 67)), "DHCP port is not a general endpoint exception")
 var nd = Array(repeating: UInt8(0), count: 24)
 nd[0] = 135
+nd.replaceSubrange(8..<24, with: IPv6Address("2001:db8::1")!.rawValue)
 check(allows(.blockAll, ipv6(proto: 58, destination: "ff02::1:ff00:1", source: "fe80::2", body: nd)), "Link-local neighbor solicitation must be allowed")
-check(!allows(.blockAll, ipv6(proto: 58, destination: "2001:db8::1", source: "fe80::2", body: nd)), "Global ICMPv6 exception must be blocked")
+check(!allows(.blockAll, ipv6(proto: 58, destination: "2001:db8::9", source: "fe80::2", body: nd)), "NS destination must match its target")
 invalid = ipv6(proto: 58, destination: "ff02::1:ff00:1", source: "fe80::2", body: nd)
 invalid[21] = 254
 check(!allows(.blockAll, invalid), "Forwarded neighbor discovery must be blocked")
+check(allows(.blockAll, ipv6(proto: 58, destination: "ff02::1:ff00:1", source: "2001:db8::2", body: nd)), "NS may use an assigned global source")
+check(allows(.blockAll, ipv6(proto: 58, destination: "2001:db8::1", source: "2001:db8::2", body: nd)), "Unicast neighbor reachability probes must be allowed")
+check(allows(.blockAll, ipv6(proto: 58, destination: "ff02::1:ff00:1", source: "::", body: nd)), "DAD must be allowed for the solicited-node group")
+check(!allows(.blockAll, ipv6(proto: 58, destination: "2001:db8::1", source: "::", body: nd)), "DAD must not use unicast destination")
+check(!allows(.blockAll, ipv6(proto: 58, destination: "ff02::1:ff00:2", source: "::", body: nd)), "DAD must use the target's solicited-node group")
+var malformedND = nd + [1, 1, 0, 0, 0, 0, 0, 0]
+check(!allows(.blockAll, ipv6(proto: 58, destination: "ff02::1:ff00:1", source: "::", body: malformedND)), "DAD must not claim a source link-layer address")
+malformedND = nd + [1, 0]
+check(!allows(.blockAll, ipv6(proto: 58, destination: "ff02::1:ff00:1", source: "fe80::2", body: malformedND)), "Zero-length ND option must be blocked")
+malformedND = nd + [1, 2, 0, 0, 0, 0, 0, 0]
+check(!allows(.blockAll, ipv6(proto: 58, destination: "ff02::1:ff00:1", source: "fe80::2", body: malformedND)), "Truncated ND option must be blocked")
+malformedND = nd
+malformedND.replaceSubrange(8..<24, with: IPv6Address("ff02::1")!.rawValue)
+check(!allows(.blockAll, ipv6(proto: 58, destination: "ff02::1", source: "fe80::2", body: malformedND)), "Multicast ND target must be blocked")
+var na = nd
+na[0] = 136
+na[4] = 0x60
+check(allows(.blockAll, ipv6(proto: 58, destination: "fe80::2", source: "2001:db8::1", body: na)), "NA must allow an assigned global source")
+check(allows(.blockAll, ipv6(proto: 58, destination: "2001:db8::2", source: "2001:db8::1", body: na), outbound: false), "NA may be delivered to a global address on this link")
+check(!allows(.blockAll, ipv6(proto: 58, destination: "ff02::1", source: "2001:db8::1", body: na)), "Solicited NA must not use a multicast destination")
+na[4] = 0x20
+check(allows(.blockAll, ipv6(proto: 58, destination: "ff02::1", source: "2001:db8::1", body: na)), "Unsolicited NA to all-nodes must be allowed")
+check(!allows(.blockAll, ipv6(proto: 58, destination: "ff02::2", source: "2001:db8::1", body: na)), "NA must not use an unrelated multicast destination")
+check(!allows(.blockAll, ipv6(proto: 58, destination: "ff02::1", source: "::", body: na)), "NA must not have an unspecified source")
+var rs = Array(repeating: UInt8(0), count: 8)
+rs[0] = 133
+check(allows(.blockAll, ipv6(proto: 58, destination: "ff02::2", source: "::", body: rs)), "Initial RS must be allowed")
+check(!allows(.blockAll, ipv6(proto: 58, destination: "2001:db8::2", source: "::", body: rs)), "RS must not permit arbitrary global traffic")
+var ra = Array(repeating: UInt8(0), count: 16)
+ra[0] = 134
+check(allows(.blockAll, ipv6(proto: 58, destination: "2001:db8::2", source: "fe80::1", body: ra), outbound: false), "Router may answer a global-source RS with a unicast RA")
+check(!allows(.blockAll, ipv6(proto: 58, destination: "ff02::1", source: "2001:db8::1", body: ra)), "RA source must be link-local")
+var redirect = Array(repeating: UInt8(0), count: 40)
+redirect[0] = 137
+check(!allows(.blockAll, ipv6(proto: 58, destination: "fe80::2", source: "fe80::1", body: redirect)), "Redirects remain blocked")
+var echo = Array(repeating: UInt8(0), count: 8)
+echo[0] = 128
+check(!allows(.blockAll, ipv6(proto: 58, destination: "2001:db8::2", source: "2001:db8::1", body: echo)), "Ordinary ICMPv6 is not a maintenance exception")
+var dhcp = transport(proto: 17, source: 546, destination: 547) + [1, 0, 0, 1]
+writeWord(&dhcp, 4, dhcp.count)
+check(allows(.blockAll, ipv6(destination: "ff02::1:2", source: "fe80::2", body: dhcp)), "DHCPv6 multicast Solicit must be allowed")
+check(!allows(.blockAll, ipv6(destination: "2001:db8::9", source: "fe80::2", body: dhcp)), "DHCPv6 must not be a general global UDP exception")
+check(!allows(.blockAll, ipv6(destination: "ff02::1:2", source: "2001:db8::2", body: dhcp)), "Initial DHCPv6 prototype requires a link-local client")
+dhcp[8] = 5
+check(allows(.blockAll, ipv6(destination: "fe80::1", source: "fe80::2", body: dhcp)), "DHCPv6 may renew with an on-link server")
+writeWord(&dhcp, 0, 547)
+writeWord(&dhcp, 2, 546)
+dhcp[8] = 7
+check(allows(.blockAll, ipv6(destination: "fe80::2", source: "fe80::1", body: dhcp), outbound: false), "DHCPv6 server Reply must be allowed")
+check(!allows(.blockAll, ipv6(destination: "fe80::2", source: "2001:db8::1", body: dhcp), outbound: false), "Global DHCPv6 server traffic remains unsupported")
+check(!allows(.blockAll, ipv6(destination: "2001:db8::2", source: "fe80::1", body: dhcp), outbound: false), "Global DHCPv6 client traffic remains unsupported")
+check(!allows(.blockAll, ipv6(destination: "fe80::2", source: "fe80::1", body: dhcp)), "Outbound traffic cannot claim to be a DHCPv6 server Reply")
+dhcp[8] = 1
+check(!allows(.blockAll, ipv6(destination: "fe80::2", source: "fe80::1", body: dhcp), outbound: false), "Inbound client message is not a DHCPv6 reply")
 
 // Deterministic malformed-frame fuzzing checks parser bounds without networking.
 var state: UInt64 = 4

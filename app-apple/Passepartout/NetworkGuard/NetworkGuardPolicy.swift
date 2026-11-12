@@ -121,24 +121,74 @@ struct NetworkGuardPolicy {
         let transport = UnsafeRawBufferPointer(rebasing: packet[40...])
         let proto = bytes[6]
         if proto == 58 {
-            // Neighbor discovery never forwards beyond this link (hop limit 255).
-            // Redirects are not permitted. Require the standard fixed header size.
-            let minimumLengths: [UInt8: Int] = [133: 8, 134: 16, 135: 24, 136: 24]
-            guard transport.count >= 8, bytes[7] == 255, transport[1] == 0,
-                  let minimum = minimumLengths[transport[0]], transport.count >= minimum else { return false }
-            let sourceLinkLocal = bytes[8] == 0xfe && bytes[9] & 0xc0 == 0x80
-            let sourceUnspecified = bytes[8..<24].allSatisfy { $0 == 0 }
-            let destinationOnLink = bytes[24] == 0xff && bytes[25] == 0x02
-                || bytes[24] == 0xfe && bytes[25] & 0xc0 == 0x80
-            return destinationOnLink && (sourceLinkLocal || sourceUnspecified && [133, 135].contains(transport[0]))
+            return allowsNeighborDiscovery(packet, message: transport)
         }
         guard validTransport(transport, protocolNumber: proto) else { return false }
-        if proto == 17 && outbound && word(transport, 0) == 546 && word(transport, 2) == 547 {
+        if proto == 17, transport.count >= 12 {
+            // RFC 8415 sections 7.1/7.2: permit direct on-link DHCPv6
+            // discovery and replies, not arbitrary UDP using a DHCP port.
+            // Global-address server-unicast and relay traffic remain unsupported.
+            let source = Array(bytes[8..<24])
+            let destination = Array(bytes[24..<40])
             let dhcpMulticast: [UInt8] = [0xff, 0x02] + Array(repeating: 0, count: 11) + [1, 0, 2]
-            if Array(bytes[24..<40]) == dhcpMulticast { return true }
+            if outbound, word(transport, 0) == 546, word(transport, 2) == 547,
+               isLinkLocal(source), destination == dhcpMulticast || isLinkLocal(destination),
+               [1, 3, 4, 5, 6, 8, 9, 11].contains(transport[8]) { return true }
+            if !outbound, word(transport, 0) == 547, word(transport, 2) == 546,
+               isLinkLocal(source), isLinkLocal(destination),
+               [2, 7, 10].contains(transport[8]) { return true }
         }
         let address = Data(bytes[(outbound ? 24 : 8)..<(outbound ? 40 : 24)])
         return matches(address, protocolNumber: proto, port: word(transport, outbound ? 2 : 0))
+    }
+
+    private func allowsNeighborDiscovery(_ packet: UnsafeRawBufferPointer, message: UnsafeRawBufferPointer) -> Bool {
+        // RFC 4861 sections 4 and 7.1: NS/NA sources may be assigned global
+        // unicast addresses. Requiring link-local for every ND message breaks
+        // resolution of a host's global address. RA sources must be link-local.
+        let minimumLengths: [UInt8: Int] = [133: 8, 134: 16, 135: 24, 136: 24]
+        guard message.count >= 8, packet[7] == 255, message[1] == 0,
+              let minimum = minimumLengths[message[0]], message.count >= minimum else { return false }
+        let source = Array(packet[8..<24])
+        let destination = Array(packet[24..<40])
+        let unspecifiedSource = source.allSatisfy { $0 == 0 }
+        let allNodes: [UInt8] = [0xff, 0x02] + Array(repeating: 0, count: 13) + [1]
+        let allRouters: [UInt8] = [0xff, 0x02] + Array(repeating: 0, count: 13) + [2]
+        var optionOffset = minimum
+        while optionOffset < message.count {
+            guard message.count >= optionOffset + 2 else { return false }
+            let optionLength = Int(message[optionOffset + 1]) * 8
+            guard optionLength != 0, optionLength <= message.count - optionOffset else { return false }
+            // DAD and initial RS must not claim a source link-layer address.
+            guard !(unspecifiedSource && message[optionOffset] == 1) else { return false }
+            optionOffset += optionLength
+        }
+        switch message[0] {
+        case 133:
+            return (unspecifiedSource || isUnicast(source))
+                && (destination == allRouters || isLinkLocal(destination))
+        case 134:
+            return isLinkLocal(source) && (destination == allNodes || isUnicast(destination))
+        case 135:
+            let target = Array(message[8..<24])
+            guard isUnicast(target), unspecifiedSource || isUnicast(source) else { return false }
+            let solicitedNode: [UInt8] = [0xff, 0x02] + Array(repeating: 0, count: 9) + [1, 0xff] + target.suffix(3)
+            return destination == solicitedNode || (!unspecifiedSource && destination == target)
+        case 136:
+            guard isUnicast(source), isUnicast(Array(message[8..<24])) else { return false }
+            return isUnicast(destination) || (destination == allNodes && message[4] & 0x40 == 0)
+        default:
+            return false
+        }
+    }
+
+    private func isLinkLocal(_ address: [UInt8]) -> Bool {
+        address[0] == 0xfe && address[1] & 0xc0 == 0x80
+    }
+
+    private func isUnicast(_ address: [UInt8]) -> Bool {
+        address[0] != 0xff && address.contains(where: { $0 != 0 })
+            && address != Array(repeating: 0, count: 15) + [1]
     }
 
     private func validTransport(_ bytes: UnsafeRawBufferPointer, protocolNumber: UInt8) -> Bool {
