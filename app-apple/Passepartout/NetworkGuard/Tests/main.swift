@@ -206,9 +206,17 @@ print("NetworkGuardPolicy: \(checks) checks passed; no live enforcement or persi
 
 if #available(macOS 27.0, *) {
     let endpoint = try NetworkGuardPrototypeConfiguration.Endpoint(address: "198.51.100.4", transport: .udp, port: 1194)
-    let configuration = try NetworkGuardPrototypeConfiguration.make(endpoints: [endpoint], expiresAt: Date().addingTimeInterval(60))
+    let configuration = try NetworkGuardPrototypeConfiguration.make(applicationBundleIdentifier: "com.test.Passepartout", endpoints: [endpoint], expiresAt: Date().addingTimeInterval(60))
     check(configuration.filterPackets && !configuration.filterSockets, "Prototype must request only packet filtering")
-    check(configuration.filterPacketProviderBundleIdentifier == NetworkGuardPrototypeConfiguration.providerBundleIdentifier, "Prototype provider must be selected explicitly")
+    check(configuration.filterPacketProviderBundleIdentifier == "com.test.Passepartout.NetworkGuard", "Provider identifier must match the app being installed")
+    let ownTeam = try NetworkGuardPrototypeConfiguration.make(applicationBundleIdentifier: "com.crispytoast.Passepartout", endpoints: [endpoint], expiresAt: Date().addingTimeInterval(60))
+    check(ownTeam.filterPacketProviderBundleIdentifier == "com.crispytoast.Passepartout.NetworkGuard", "Provisioned app identifier must not select the upstream guard")
+    for invalidIdentifier in ["", "com.test.*", "com..test", ".com.test", "com.test.", "com.test/other"] {
+        do {
+            _ = try NetworkGuardPrototypeConfiguration.make(applicationBundleIdentifier: invalidIdentifier, endpoints: [endpoint], expiresAt: Date().addingTimeInterval(60))
+            preconditionFailure("Invalid application identifier accepted")
+        } catch { checks += 1 }
+    }
     check(allows(NetworkGuardPolicy(configuration: configuration.vendorConfiguration), packet), "Builder and provider schemas must interoperate")
     for invalidAddress in ["vpn.example.com", "", "198.51.100.999"] {
         do {
@@ -217,11 +225,11 @@ if #available(macOS 27.0, *) {
         } catch { checks += 1 }
     }
     do {
-        _ = try NetworkGuardPrototypeConfiguration.make(endpoints: [], expiresAt: Date().addingTimeInterval(60))
+        _ = try NetworkGuardPrototypeConfiguration.make(applicationBundleIdentifier: "com.test.Passepartout", endpoints: [], expiresAt: Date().addingTimeInterval(60))
         preconditionFailure("Empty configuration accepted")
     } catch { checks += 1 }
     do {
-        _ = try NetworkGuardPrototypeConfiguration.make(endpoints: [endpoint], expiresAt: .distantPast)
+        _ = try NetworkGuardPrototypeConfiguration.make(applicationBundleIdentifier: "com.test.Passepartout", endpoints: [endpoint], expiresAt: .distantPast)
         preconditionFailure("Expired configuration accepted")
     } catch { checks += 1 }
     print("NetworkGuard configuration builder: checks passed; total \(checks)")

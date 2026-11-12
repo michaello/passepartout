@@ -9,9 +9,8 @@ import NetworkExtension
 /// save, enable, or claim to verify a filter. It is not a production arming driver.
 @available(macOS 27.0, *)
 public enum NetworkGuardPrototypeConfiguration {
-    public static let providerBundleIdentifier = "com.algoritmico.mac.Passepartout.NetworkGuard"
-
     public enum ConfigurationError: Error {
+        case invalidApplicationIdentifier
         case invalidEndpoint
         case invalidEndpointCount
         case invalidExpiry
@@ -43,6 +42,7 @@ public enum NetworkGuardPrototypeConfiguration {
     /// does not establish active enforcement, boot persistence, or crash behavior.
     /// The prototype has no authorized inner-tunnel path and can block VPN traffic.
     public static func make(
+        applicationBundleIdentifier: String,
         endpoints: [Endpoint],
         expiresAt: Date,
         now: Date = Date()
@@ -51,10 +51,11 @@ public enum NetworkGuardPrototypeConfiguration {
         guard expiresAt.timeIntervalSince1970.isFinite, expiresAt > now else {
             throw ConfigurationError.invalidExpiry
         }
+        let identifier = try providerBundleIdentifier(for: applicationBundleIdentifier)
         let configuration = NEFilterProviderConfiguration()
         configuration.filterPackets = true
         configuration.filterSockets = false
-        configuration.filterPacketProviderBundleIdentifier = providerBundleIdentifier
+        configuration.filterPacketProviderBundleIdentifier = identifier
         configuration.vendorConfiguration = [
             "schemaVersion": 1,
             "expiresAt": expiresAt.timeIntervalSince1970,
@@ -63,6 +64,16 @@ public enum NetworkGuardPrototypeConfiguration {
             }
         ]
         return configuration
+    }
+
+    public static func providerBundleIdentifier(for applicationBundleIdentifier: String) throws -> String {
+        let segments = applicationBundleIdentifier.split(separator: ".", omittingEmptySubsequences: false)
+        let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-")
+        guard segments.count >= 2,
+              segments.allSatisfy({ !$0.isEmpty && $0.unicodeScalars.allSatisfy(allowed.contains) }) else {
+            throw ConfigurationError.invalidApplicationIdentifier
+        }
+        return applicationBundleIdentifier + ".NetworkGuard"
     }
 }
 #endif
