@@ -1639,6 +1639,7 @@
 		};
 		F17200000000000000000041 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0ECD96172DC2738B009BD9F8 /* Config.mac.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Passepartout/NetworkGuard/NetworkGuard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -1648,7 +1649,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Network Guard Prototype";
 				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "Prototype packet filter. Persistence and tunnel authorization are not verified.";
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.algoritmico.mac.Passepartout.NetworkGuard;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CFG_GUARD_ID)";
 				PRODUCT_NAME = "$(PRODUCT_BUNDLE_IDENTIFIER)";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -1659,6 +1660,7 @@
 		};
 		F17200000000000000000042 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0ECD96172DC2738B009BD9F8 /* Config.mac.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Passepartout/NetworkGuard/NetworkGuard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -1668,7 +1670,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Network Guard Prototype";
 				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "Prototype packet filter. Persistence and tunnel authorization are not verified.";
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.algoritmico.mac.Passepartout.NetworkGuard;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CFG_GUARD_ID)";
 				PRODUCT_NAME = "$(PRODUCT_BUNDLE_IDENTIFIER)";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -1679,6 +1681,7 @@
 		};
 		F17200000000000000000043 /* ReleaseMac */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0ECD96172DC2738B009BD9F8 /* Config.mac.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Passepartout/NetworkGuard/NetworkGuard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -1688,7 +1691,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Network Guard Prototype";
 				INFOPLIST_KEY_NSSystemExtensionUsageDescription = "Prototype packet filter. Persistence and tunnel authorization are not verified.";
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.algoritmico.mac.Passepartout.NetworkGuard;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CFG_GUARD_ID)";
 				PRODUCT_NAME = "$(PRODUCT_BUNDLE_IDENTIFIER)";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;

@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "F17200000000000000000030"
-               BuildableName = "com.algoritmico.mac.Passepartout.NetworkGuard.systemextension"
+               BuildableName = "NetworkGuard.systemextension"
                BlueprintName = "NetworkGuard"
                ReferencedContainer = "container:Passepartout.xcodeproj">
             </BuildableReference>
@@ -51,7 +51,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "F17200000000000000000030"
-            BuildableName = "com.algoritmico.mac.Passepartout.NetworkGuard.systemextension"
+            BuildableName = "NetworkGuard.systemextension"
             BlueprintName = "NetworkGuard"
             ReferencedContainer = "container:Passepartout.xcodeproj">
          </BuildableReference>

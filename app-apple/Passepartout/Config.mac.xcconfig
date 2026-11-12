@@ -1,4 +1,7 @@
 CFG_APP_ID = com.algoritmico.mac.Passepartout
+CFG_GUARD_ID = $(CFG_APP_ID).NetworkGuard
+// Packaging is opt-in until signing, approval and enforcement are verified.
+CFG_EMBED_NETWORK_GUARD = NO
 CFG_ENTITLEMENTS = Passepartout/App/AppMac.entitlements
 CFG_TUNNEL_INFO_PLIST = Passepartout/Tunnel/TunnelMac.plist
 CFG_TUNNEL_ENTITLEMENT = $(CFG_TUNNEL_ENTITLEMENT_BASE)-systemextension
