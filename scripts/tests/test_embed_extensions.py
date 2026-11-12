@@ -105,6 +105,15 @@ class EmbedExtensionsTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue((self.app / "PlugIns/PassepartoutTunnel.appex").is_dir())
 
+    def test_invalid_identifier_cannot_escape_generated_bundle_directory(self):
+        for key in ("CFG_APP_ID", "CFG_TUNNEL_ID"):
+            for value in ("../outside", "/outside", "com..example", "com.example/"):
+                with self.subTest(key=key, value=value):
+                    result = self.run_script(**{key: value})
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("Invalid bundle identifier", result.stderr)
+                    self.assertEqual(list(self.app.iterdir()), [])
+
 
 if __name__ == "__main__":
     unittest.main()

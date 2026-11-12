@@ -54,6 +54,11 @@ fi
 if [ "$PLATFORM_NAME" = "$platform_mac" ] && [ "$CONFIGURATION" = "$sysex_cfg" ]; then
     : "${CFG_APP_ID:?Missing application identifier}"
     : "${CFG_TUNNEL_ID:?Missing tunnel identifier}"
+    for identifier in "$CFG_APP_ID" "$CFG_TUNNEL_ID"; do
+        case "$identifier" in
+            *[!A-Za-z0-9.-]*|.*|*.|*..*) fail "Invalid bundle identifier" ;;
+        esac
+    done
     guard_id="${CFG_APP_ID}.NetworkGuard"
     [ "${CFG_GUARD_ID:-$guard_id}" = "$guard_id" ] || fail "Guard identifier must derive from CFG_APP_ID"
     sysex_src="${BUILT_PRODUCTS_DIR}/${CFG_TUNNEL_ID}.systemextension"
