@@ -23,7 +23,8 @@
         "RequireVPNProfileUITests/testDownloadPreflightProfile()",
         "RequireVPNProfileUITests/testInspectSystem()",
         "RequireVPNProfileUITests/testReviewPreflightProfile()",
-        "RequireVPNProfileUITests/testInstallPreflightProfile()"
+        "RequireVPNProfileUITests/testInstallPreflightProfile()",
+        "RequireVPNProfileUITests/testRemoveDownloadedPreflightProfile()"
       ],
       "target": {
         "containerPath": "container:Passepartout.xcodeproj",

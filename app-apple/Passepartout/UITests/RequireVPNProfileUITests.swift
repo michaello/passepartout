@@ -50,29 +50,36 @@ final class RequireVPNProfileUITests: XCTestCase {
         let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
         settings.activate()
         XCTAssertTrue(settings.wait(for: .runningForeground, timeout: 15))
-        let install = settings.navigationBars["Install Profile"]
-        XCTAssertTrue(install.waitForExistence(timeout: 5))
-        XCTAssertTrue(settings.staticTexts["Require VPN preflight (no network changes)"].firstMatch.exists)
-        XCTAssertTrue(settings.staticTexts["Temporary removable declaration test. No VPN, certificates, or restrictions."].exists)
-        XCTAssertTrue(settings.staticTexts["Declaration"].exists)
-        if install.buttons["Install"].isHittable {
+        XCTAssertFalse(settings.secureTextFields["Passcode"].exists,
+                       "Enter the passcode directly on the iPhone before resuming this test.")
+        if settings.navigationBars["Warning"].exists {
+            let message = settings.staticTexts.matching(NSPredicate(
+                format: "label CONTAINS %@ AND label CONTAINS %@",
+                "Require VPN preflight (no network changes)", "cannot be verified"
+            )).firstMatch
+            XCTAssertTrue(message.exists)
+        } else {
+            let install = settings.navigationBars["Install Profile"]
+            XCTAssertTrue(install.waitForExistence(timeout: 5))
+            XCTAssertTrue(settings.staticTexts["Require VPN preflight (no network changes)"].firstMatch.exists)
+            XCTAssertTrue(settings.staticTexts["Temporary removable declaration test. No VPN, certificates, or restrictions."].exists)
+            XCTAssertTrue(settings.staticTexts["Declaration"].exists)
             install.buttons["Install"].tap()
         }
         if settings.secureTextFields["Passcode"].exists {
             XCTFail("iOS requires the device owner to enter the passcode directly on the iPhone.")
             return
         }
-        for _ in 0..<3 {
-            if settings.navigationBars["Profile Installed"].exists { break }
-            if settings.navigationBars["Warning"].waitForExistence(timeout: 3) {
-                saveEvidence("PreflightWarning", application: settings)
-                settings.navigationBars["Warning"].buttons["Install"].tap()
-            } else if settings.sheets.buttons["Install"].exists {
-                settings.sheets.buttons["Install"].tap()
-            } else {
-                break
-            }
+        let confirmation = settings.alerts["Install Profile"]
+        if !confirmation.exists {
+            let warning = settings.navigationBars["Warning"]
+            XCTAssertTrue(warning.waitForExistence(timeout: 5))
+            saveEvidence("PreflightWarning", application: settings)
+            warning.buttons["Install"].tap()
         }
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 5))
+        saveEvidence("PreflightConfirmation", application: settings)
+        confirmation.buttons["Install"].tap()
         saveEvidence("PreflightInstallResult", application: settings)
         XCTAssertTrue(settings.navigationBars["Profile Installed"].waitForExistence(timeout: 10))
         settings.navigationBars["Profile Installed"].buttons["Done"].tap()
@@ -101,6 +108,28 @@ final class RequireVPNProfileUITests: XCTestCase {
         finishDownload()
     }
 
+    func testRemoveDownloadedPreflightProfile() throws {
+        let environment = ProcessInfo.processInfo.environment
+        try XCTSkipUnless(environment["REQUIRE_VPN_DEVICE_UI"] == "1")
+        try XCTSkipIf((environment["REQUIRE_VPN_PREFLIGHT_URL"] ?? "").isEmpty)
+        continueAfterFailure = false
+        let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+        settings.activate()
+        XCTAssertTrue(settings.wait(for: .runningForeground, timeout: 15))
+        if !settings.navigationBars["Install Profile"].exists {
+            let name = settings.tables.staticTexts["Require VPN preflight (no network changes)"]
+            XCTAssertTrue(name.waitForExistence(timeout: 5))
+            name.tap()
+        }
+        XCTAssertTrue(settings.navigationBars["Install Profile"].waitForExistence(timeout: 5))
+        XCTAssertTrue(settings.staticTexts["Temporary removable declaration test. No VPN, certificates, or restrictions."].exists)
+        settings.tables.staticTexts["Remove Downloaded Profile"].tap()
+        XCTAssertTrue(settings.navigationBars["Install Profile"].waitForNonExistence(timeout: 5))
+        XCTAssertFalse(settings.tables.staticTexts["Require VPN preflight (no network changes)"].exists)
+        waitForSettingsWindow(settings)
+        saveEvidence("DownloadedPreflightRemoved", application: settings)
+    }
+
     private func finishDownload() {
         let system = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         saveEvidence("SystemDialog", application: system)
@@ -113,16 +142,19 @@ final class RequireVPNProfileUITests: XCTestCase {
         let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
         settings.activate()
         XCTAssertTrue(settings.wait(for: .runningForeground, timeout: 15))
-        if settings.navigationBars["VPN & Device Management"].exists {
+        waitForSettingsWindow(settings)
+        let name = settings.tables.staticTexts["Require VPN preflight (no network changes)"]
+        if !name.waitForExistence(timeout: 3), settings.navigationBars["VPN & Device Management"].exists {
             settings.navigationBars.buttons["BackButton"].tap()
-            let management = settings.staticTexts["VPN & Device Management"]
+            XCTAssertTrue(settings.navigationBars["General"].waitForExistence(timeout: 5))
+            let management = settings.tables.staticTexts["VPN & Device Management"]
             for _ in 0..<4 where !management.isHittable { settings.swipeUp() }
             XCTAssertTrue(management.waitForExistence(timeout: 3))
             management.tap()
         }
         waitForSettingsWindow(settings)
         saveEvidence("AfterDownload", application: settings)
-        XCTAssertTrue(settings.staticTexts["Require VPN preflight (no network changes)"].waitForExistence(timeout: 10))
+        XCTAssertTrue(name.waitForExistence(timeout: 10))
     }
 
     private func waitForSettingsWindow(_ settings: XCUIApplication) {
