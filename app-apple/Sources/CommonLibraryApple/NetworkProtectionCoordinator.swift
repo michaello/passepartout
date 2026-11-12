@@ -39,11 +39,14 @@ public final class NetworkProtectionCoordinator {
     public private(set) var enforcement: Enforcement = .unavailable
     public private(set) var tunnel: Tunnel = .disconnected
     public private(set) var lastError: (any Error)?
-    private let store: any NetworkProtectionPolicyStoring
+    private let persistPolicy: @MainActor (NETunnelProtection) async throws -> Void
     private var isUpdating = false
 
-    public init(store: any NetworkProtectionPolicyStoring) {
-        self.store = store
+    public init(
+        store: any NetworkProtectionPolicyStoring,
+        persistPolicy: (@MainActor (NETunnelProtection) async throws -> Void)? = nil
+    ) {
+        self.persistPolicy = persistPolicy ?? { try store.save($0) }
         do {
             policy = try store.load()
         } catch {
@@ -73,7 +76,7 @@ public final class NetworkProtectionCoordinator {
         defer { isUpdating = false }
         policy = .requireVPN
         do {
-            try store.save(.requireVPN)
+            try await persistPolicy(.requireVPN)
             enforcement = .installing
             lastError = nil
             try await verifyAndArm()
@@ -98,7 +101,7 @@ public final class NetworkProtectionCoordinator {
         do {
             // The strict manager marker still prevents ordinary disconnects.
             // The driver must use the explicit NE disable-protection operation.
-            try store.save(.disabled)
+            try await persistPolicy(.disabled)
             policy = .disabled
             try await disableEnforcement()
             enforcement = .unavailable

@@ -128,7 +128,6 @@ extension AppContext {
         // MARK: Profiles and Tunnel (NE)
 
         let protectionStore = LocalNetworkProtectionPolicyStore(applicationIdentifier: bundleIdentifier)
-        let networkProtection = NetworkProtectionCoordinator(store: protectionStore)
         let sysexManager = appConfiguration.makeSystemExtensionManager()
 #if targetEnvironment(simulator)
         let tunnelStrategy = FakeTunnelStrategy()
@@ -191,6 +190,15 @@ extension AppContext {
             observingResults: false
         )
 #endif
+        let networkProtection = NetworkProtectionCoordinator(store: protectionStore) { policy in
+#if targetEnvironment(simulator)
+            try protectionStore.save(policy)
+#else
+            try await tunnelStrategy.withDevicePolicyMutation {
+                try protectionStore.save(policy)
+            }
+#endif
+        }
         let tunnelProcessor = appConfiguration.makeAppTunnelProcessor(
             profileRepository: mainProfileRepository,
             extensionInstaller: sysexManager
